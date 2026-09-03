@@ -115,6 +115,20 @@ body {
 .btn.primary { background: var(--accent); color: #fff; }
 .btn.primary:hover { background: #7d6957; }
 
+.arcade-back {
+  align-self: flex-start;
+  text-decoration: none;
+  color: var(--text);
+  background: #ede0c8;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s ease;
+}
+.arcade-back:hover { background: #e7d7bb; }
+
 /* ---------- board ---------- */
 .board-wrap { display: flex; justify-content: center; }
 

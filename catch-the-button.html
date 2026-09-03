@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catch the Button — Funhouse Arcade</title>
+  <link rel="stylesheet" href="arcade.css" />
+  <style>
+    .arena {
+      position: relative;
+      height: 380px;
+      background: linear-gradient(135deg, #eef2ff, #e7fbf5);
+      border-radius: 24px;
+      margin-top: 14px;
+      box-shadow: inset 0 2px 12px rgba(60, 40, 60, 0.06);
+      overflow: hidden;
+      touch-action: none;
+    }
+    .target {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 18px 34px;
+      font: inherit;
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff5e7e, #8b5cf6);
+      box-shadow: 0 10px 24px rgba(139, 92, 246, 0.4);
+      transition: left 0.14s ease, top 0.14s ease;
+      white-space: nowrap;
+    }
+    .target.tripped {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      animation: wobble 0.4s ease;
+    }
+    @keyframes wobble {
+      0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+      25%      { transform: translate(-52%, -50%) rotate(-8deg); }
+      75%      { transform: translate(-48%, -50%) rotate(8deg); }
+    }
+    .bubble { margin-top: 16px; }
+    .bubble.caught { background: #fff7e6; }
+    .bubble.trip { background: #eafaf5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar"><a class="back" href="index.html">← Arcade</a></div>
+    <h1>🏃💨 Catch the Button</h1>
+    <p class="sub">A button with serious commitment issues. Catch it <strong>6 times</strong> while it trips over itself.</p>
+
+    <div class="stat-bar">
+      <div class="stat-box"><span class="label">Caught</span><span class="value" id="caught">0 / 6</span></div>
+      <div class="stat-box"><span class="label">Escapes</span><span class="value" id="escapes">0</span></div>
+    </div>
+
+    <div class="arena" id="arena">
+      <button class="target" id="target" type="button">CLICK ME</button>
+    </div>
+
+    <div class="bubble" id="bubble">Hi. I'm a button. You can't catch me.</div>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-card">
+      <div class="emoji">🏆</div>
+      <h2>You caught it!</h2>
+      <p id="overlay-text"></p>
+      <button class="btn" id="again" type="button">Play again</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var arena = document.getElementById("arena");
+      var target = document.getElementById("target");
+      var caughtEl = document.getElementById("caught");
+      var escapesEl = document.getElementById("escapes");
+      var bubble = document.getElementById("bubble");
+      var overlay = document.getElementById("overlay");
+      var overlayText = document.getElementById("overlay-text");
+      var again = document.getElementById("again");
+
+      var GOAL = 6;
+
+      var TAUNTS = [
+        "Nope!", "Too slow, human.", "You call that clicking?", "My grandma dodges better.",
+        "Nah-uh!", "Catch me if you can!", "Is that all you've got?", "I've seen faster fingers.",
+        "Nice try, champ.", "404: click not found.", "You missed! Again.", "Keep practicing.",
+        "I'm basically a ninja.", "Too easy. For me."
+      ];
+      var TRIPS = [
+        "Oops! I tripped! QUICK!", "My shoelace! NOW'S YOUR CHANCE!", "*pretends to faint*",
+        "Wait, my batteries! Oh no!"
+      ];
+      var CAUGHT_LINES = [
+        "Caught! …I let you win.", "Fine. You got me. Happy?", "I wanted to be caught, obviously.",
+        "This is humiliating.", "I demand a lawyer.", "Okay okay, you win this one."
+      ];
+
+      var caught = 0, escapes = 0, tripped = false, tripTimer = null, done = false;
+
+      function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+      function say(text, tone) {
+        bubble.textContent = text;
+        bubble.className = "bubble" + (tone ? " " + tone : "");
+      }
+
+      function move() {
+        var pad = 14;
+        var maxX = arena.clientWidth - target.offsetWidth - pad * 2;
+        var maxY = arena.clientHeight - target.offsetHeight - pad * 2;
+        var x = pad + Math.random() * Math.max(0, maxX);
+        var y = pad + Math.random() * Math.max(0, maxY);
+        target.style.left = x + "px";
+        target.style.top = y + "px";
+        target.style.transform = "translate(-50%,-50%) rotate(" + (Math.random() * 28 - 14) + "deg)";
+      }
+
+      function untrip() {
+        tripped = false;
+        clearTimeout(tripTimer);
+        target.classList.remove("tripped");
+        target.textContent = "CLICK ME";
+      }
+
+      function trip() {
+        tripped = true;
+        target.classList.add("tripped");
+        target.textContent = "…OW";
+        say(rand(TRIPS), "trip");
+        tripTimer = setTimeout(untrip, 1100);
+      }
+
+      function maybeDodge(pointerType) {
+        if (done || tripped) return;
+        if (Math.random() < 0.26) {
+          trip();
+          return;
+        }
+        escapes++;
+        escapesEl.textContent = escapes;
+        move();
+        say(rand(TAUNTS));
+      }
+
+      target.addEventListener("pointerenter", function (e) {
+        if (e.pointerType !== "touch") maybeDodge();
+      });
+      target.addEventListener("pointerdown", function (e) {
+        if (e.pointerType === "touch") maybeDodge();
+      });
+
+      target.addEventListener("click", function () {
+        if (done || !tripped) return;
+        untrip();
+        caught++;
+        caughtEl.textContent = caught + " / " + GOAL;
+        say(rand(CAUGHT_LINES), "caught");
+        if (caught >= GOAL) {
+          done = true;
+          overlayText.textContent = "You clicked the unclickable " + GOAL + " times. The button has filed a complaint but admits defeat.";
+          overlay.hidden = false;
+        } else {
+          move();
+        }
+      });
+
+      function reset() {
+        caught = 0;
+        escapes = 0;
+        done = false;
+        tripped = false;
+        caughtEl.textContent = "0 / " + GOAL;
+        escapesEl.textContent = "0";
+        overlay.hidden = true;
+        clearTimeout(tripTimer);
+        target.classList.remove("tripped");
+        target.textContent = "CLICK ME";
+        target.style.left = "50%";
+        target.style.top = "50%";
+        target.style.transform = "translate(-50%,-50%)";
+        say("Hi. I'm a button. You can't catch me.");
+      }
+
+      again.addEventListener("click", reset);
+    })();
+  </script>
+</body>
+</html>
