@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>2048 — Puzzle Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <h1>2048</h1>
+        <p class="tagline">Join the tiles, reach <strong>2048</strong>!</p>
+      </div>
+
+      <div class="scores">
+        <div class="score-box">
+          <span class="score-label">Score</span>
+          <span class="score-value" id="score">0</span>
+        </div>
+        <div class="score-box best">
+          <span class="score-label">Best</span>
+          <span class="score-value" id="best">0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <button class="btn" id="new-game" type="button">New Game</button>
+      <button class="btn" id="undo" type="button" title="Undo last move">↩ Undo</button>
+    </div>
+
+    <section class="board-wrap">
+      <div class="board" id="board">
+        <div class="grid" aria-hidden="true">
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        </div>
+        <div class="tiles" id="tiles"></div>
+
+        <div class="overlay" id="overlay" hidden>
+          <div class="overlay-card">
+            <h2 id="overlay-title">You win!</h2>
+            <p id="overlay-text"></p>
+            <div class="overlay-actions">
+              <button class="btn primary" id="overlay-primary">Keep going</button>
+              <button class="btn" id="overlay-secondary">New Game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="hint">
+      <p><span class="key">←</span><span class="key">↑</span><span class="key">→</span><span class="key">↓</span>
+         or <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
+         to move — swipe on touch screens.</p>
+    </footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
