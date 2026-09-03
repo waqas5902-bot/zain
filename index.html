@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Funhouse Arcade</title>
+  <link rel="stylesheet" href="arcade.css" />
+  <style>
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 22px;
+      padding: 20px;
+      text-decoration: none;
+      color: var(--ink);
+      box-shadow: 0 8px 22px rgba(60, 40, 60, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 16px 34px rgba(60, 40, 60, 0.14); }
+    .card .emoji { font-size: 52px; line-height: 1; }
+    .card h2 { font-size: 20px; font-weight: 900; }
+    .card .tagline { color: var(--muted); font-size: 14px; line-height: 1.4; flex: 1; }
+    .card .tag {
+      align-self: flex-start;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #fff;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .card .tag.teal  { background: linear-gradient(135deg, #0ea5e9, var(--teal)); }
+    .card .tag.amber { background: linear-gradient(135deg, #f97316, var(--amber)); }
+    .card .tag.ink   { background: linear-gradient(135deg, #64748b, #334155); }
+    .play {
+      margin-top: 6px;
+      text-align: center;
+      font-weight: 900;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 14px;
+    }
+    .random-row { display: flex; justify-content: center; margin-top: 18px; }
+    .footer { margin-top: 30px; text-align: center; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🎪 The Funhouse Arcade</h1>
+      <p class="sub">Pick a game. Lose some dignity. Have a blast.</p>
+    </header>
+
+    <div class="random-row">
+      <button class="btn" id="random-game" type="button">🎲 Feeling lucky?</button>
+    </div>
+
+    <section class="cards">
+      <a class="card" href="potato-rage.html">
+        <span class="emoji">🥔</span>
+        <h2>Angry Potato</h2>
+        <p class="tagline">Click a potato into a full-blown rage. It's basically therapy.</p>
+        <span class="tag amber">Clicker</span>
+        <span class="play">PLAY</span>
+      </a>
+
+      <a class="card" href="catch-the-button.html">
+        <span class="emoji">🏃💨</span>
+        <h2>Catch the Button</h2>
+        <p class="tagline">A button with serious commitment issues. Click it 6 times.</p>
+        <span class="tag teal">Reaction</span>
+        <span class="play">PLAY</span>
+      </a>
+
+      <a class="card" href="whack-a-mole.html">
+        <span class="emoji">🔨</span>
+        <h2>Whack-a-Mole</h2>
+        <p class="tagline">The moles woke up and chose violence. Respond in kind.</p>
+        <span class="tag">Arcade · 30s</span>
+        <span class="play">PLAY</span>
+      </a>
+
+      <a class="card" href="rps-bot.html">
+        <span class="emoji">🤖</span>
+        <h2>RPS: Sassy Bot</h2>
+        <p class="tagline">Rock-paper-scissors against a robot with opinions. Mostly insults.</p>
+        <span class="tag ink">Luck</span>
+        <span class="play">PLAY</span>
+      </a>
+
+      <a class="card" href="2048.html">
+        <span class="emoji">🧩</span>
+        <h2>2048</h2>
+        <p class="tagline">Merge tiles until you reach 2048 and question everything.</p>
+        <span class="tag">Puzzle</span>
+        <span class="play">PLAY</span>
+      </a>
+    </section>
+
+    <footer class="footer">No moles, potatoes, or buttons were harmed in the making of these games. Mostly.</footer>
+  </div>
+
+  <script>
+    var games = ["potato-rage.html", "catch-the-button.html", "whack-a-mole.html", "rps-bot.html", "2048.html"];
+    document.getElementById("random-game").addEventListener("click", function () {
+      window.location.href = games[Math.floor(Math.random() * games.length)];
+    });
+  </script>
+</body>
+</html>

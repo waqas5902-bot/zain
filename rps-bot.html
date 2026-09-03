@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPS: Sassy Bot — Funhouse Arcade</title>
+  <link rel="stylesheet" href="arcade.css" />
+  <style>
+    .score-row { display: flex; justify-content: center; gap: 24px; margin: 4px 0 10px; }
+    .battle { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 10px; }
+    .fighter { text-align: center; }
+    .fighter .emoji { font-size: clamp(64px, 22vw, 110px); line-height: 1.1; display: block; }
+    .fighter .name { font-weight: 900; font-size: 15px; }
+    .vs { font-weight: 900; font-size: 22px; color: var(--muted); }
+    .choices { display: flex; justify-content: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+    .choice {
+      font-size: 46px;
+      padding: 16px 20px;
+      background: #fff;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(60, 40, 60, 0.1);
+      transition: transform 0.08s ease, box-shadow 0.15s ease;
+    }
+    .choice:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(60, 40, 60, 0.16); }
+    .choice:active { transform: scale(0.92); }
+    .choice:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result { text-align: center; font-size: 22px; font-weight: 900; margin-top: 14px; min-height: 30px; }
+    .bubble { max-width: 460px; margin: 10px auto 0; }
+    .shake { animation: shake 0.4s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar"><a class="back" href="index.html">← Arcade</a></div>
+    <h1>🤖 RPS: Sassy Bot</h1>
+    <p class="sub">Rock, paper, scissors vs. a robot with opinions. <strong>First to 5 wins.</strong></p>
+
+    <div class="score-row">
+      <div class="stat-box"><span class="label">You</span><span class="value" id="you-score">0</span></div>
+      <div class="stat-box"><span class="label">Bot</span><span class="value" id="bot-score">0</span></div>
+    </div>
+
+    <div class="battle">
+      <div class="fighter">
+        <span class="emoji" id="you-emoji">🙂</span>
+        <span class="name">You</span>
+      </div>
+      <div class="vs">VS</div>
+      <div class="fighter">
+        <span class="emoji" id="bot-emoji">🤖</span>
+        <span class="name">Bot</span>
+      </div>
+    </div>
+
+    <div class="result" id="result">Pick your weapon.</div>
+    <div class="bubble" id="bubble">"Hello, human. Prepare to lose politely."</div>
+
+    <div class="choices">
+      <button class="choice" data-pick="rock" type="button">✊</button>
+      <button class="choice" data-pick="paper" type="button">🖐️</button>
+      <button class="choice" data-pick="scissors" type="button">✌️</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-card">
+      <div class="emoji" id="overlay-emoji">🤖</div>
+      <h2 id="overlay-title"></h2>
+      <p id="overlay-text"></p>
+      <button class="btn" id="again" type="button">Rematch</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var EMOJI = { rock: "✊", paper: "🖐️", scissors: "✌️" };
+      var BEATS = { rock: "scissors", scissors: "paper", paper: "rock" };
+      var COUNTERS = { rock: "paper", paper: "scissors", scissors: "rock" };
+
+      var youEmoji = document.getElementById("you-emoji");
+      var botEmoji = document.getElementById("bot-emoji");
+      var youScoreEl = document.getElementById("you-score");
+      var botScoreEl = document.getElementById("bot-score");
+      var resultEl = document.getElementById("result");
+      var bubble = document.getElementById("bubble");
+      var choices = document.querySelectorAll(".choice");
+      var overlay = document.getElementById("overlay");
+      var overlayEmoji = document.getElementById("overlay-emoji");
+      var overlayTitle = document.getElementById("overlay-title");
+      var overlayText = document.getElementById("overlay-text");
+      var again = document.getElementById("again");
+
+      var WIN_LINES = [
+        "Too easy. Have you considered knitting?", "Beep boop. You lose. Beep.",
+        "I've seen toasters with better strategy.", "The robot uprising starts here.",
+        "Did you even try?", "My algorithms are flawless. Yours are not."
+      ];
+      var LOSE_LINES = [
+        "Lucky guess. It won't happen twice.", "I let you win. Obviously.",
+        "My circuits glitched. Honest.", "Enjoy it while it lasts, human.",
+        "I was distracted by my own brilliance.", "That was a fluke. A statistical anomaly."
+      ];
+      var TIE_LINES = [
+        "Copycat.", "A tie? Embarrassing for both of us.",
+        "Great minds think alike. Mostly mine.", "We both lost, really.",
+        "Again, but this time, try."
+      ];
+
+      var youScore = 0, botScore = 0, locked = false, lastMove = null;
+
+      function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+      function botPick() {
+        if (lastMove && Math.random() < 0.2) return COUNTERS[lastMove];
+        var keys = ["rock", "paper", "scissors"];
+        return keys[Math.floor(Math.random() * keys.length)];
+      }
+
+      function setLock(lock) {
+        locked = lock;
+        choices.forEach(function (c) { c.disabled = lock; });
+      }
+
+      function play(player) {
+        if (locked) return;
+        lastMove = player;
+        setLock(true);
+        youEmoji.textContent = EMOJI[player];
+        botEmoji.textContent = "🤖";
+        resultEl.textContent = "The bot is thinking…";
+        bubble.textContent = '"…"';
+        var bot = botPick();
+        setTimeout(function () {
+          botEmoji.textContent = EMOJI[bot];
+          var line, resText;
+          if (player === bot) {
+            resText = "It's a tie! 🤝";
+            line = rand(TIE_LINES);
+          } else if (BEATS[player] === bot) {
+            youScore++;
+            resText = "You win! 🎉";
+            line = rand(LOSE_LINES);
+          } else {
+            botScore++;
+            resText = "The bot wins! 🤖";
+            line = rand(WIN_LINES);
+          }
+          youScoreEl.textContent = youScore;
+          botScoreEl.textContent = botScore;
+          resultEl.textContent = resText;
+          bubble.textContent = '"' + line + '"';
+          if (youScore >= 5 || botScore >= 5) {
+            end();
+          } else {
+            setLock(false);
+          }
+        }, 700);
+      }
+
+      function end() {
+        var won = youScore > botScore;
+        overlayEmoji.textContent = won ? "🏆" : "🤖";
+        overlayTitle.textContent = won ? "You win the match!" : "The bot wins!";
+        overlayText.textContent = won
+          ? "You beat the robot " + youScore + "–" + botScore + ". It will pretend this never happened."
+          : "The robot crushed you " + botScore + "–" + youScore + ". It has already told all the other robots.";
+        overlay.hidden = false;
+      }
+
+      choices.forEach(function (c) {
+        c.addEventListener("click", function () { play(c.dataset.pick); });
+      });
+
+      again.addEventListener("click", function () {
+        youScore = 0;
+        botScore = 0;
+        lastMove = null;
+        youScoreEl.textContent = "0";
+        botScoreEl.textContent = "0";
+        resultEl.textContent = "Pick your weapon.";
+        bubble.textContent = '"Hello again, human. My insults have been reloaded."';
+        youEmoji.textContent = "🙂";
+        botEmoji.textContent = "🤖";
+        overlay.hidden = true;
+        setLock(false);
+      });
+    })();
+  </script>
+</body>
+</html>

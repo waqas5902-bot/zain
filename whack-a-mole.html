@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whack-a-Mole — Funhouse Arcade</title>
+  <link rel="stylesheet" href="arcade.css" />
+  <style>
+    .field {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      touch-action: none;
+    }
+    .hole {
+      position: relative;
+      aspect-ratio: 1;
+      background: #d9c39a;
+      border-radius: 50% 50% 18px 18px;
+      box-shadow: inset 0 -12px 0 rgba(0, 0, 0, 0.12), inset 0 6px 10px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .mole {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, 160%);
+      font-size: clamp(34px, 10vw, 60px);
+      transition: transform 0.12s ease;
+      line-height: 1;
+      will-change: transform;
+    }
+    .hole.up .mole { transform: translate(-50%, -50%); }
+    .hole.bonk .mole { transform: translate(-50%, -40%) scale(0.7); transition: none; }
+    .hole.bonk::after {
+      content: "💥";
+      position: absolute;
+      left: 50%;
+      top: 40%;
+      transform: translate(-50%, -50%);
+      font-size: 34px;
+      animation: bonkFade 0.3s ease forwards;
+    }
+    @keyframes bonkFade {
+      from { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+      to   { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+    }
+    .bubble { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar"><a class="back" href="index.html">← Arcade</a></div>
+    <h1>🔨 Whack-a-Mole</h1>
+    <p class="sub">The moles woke up and chose violence. Return the favor. <strong>🐹 +10</strong>, <strong>👑 +50</strong>, <strong>💣 −20</strong>.</p>
+
+    <div class="stat-bar">
+      <div class="stat-box"><span class="label">Score</span><span class="value" id="score">0</span></div>
+      <div class="stat-box"><span class="label">Time</span><span class="value" id="time">30</span></div>
+      <div class="stat-box"><span class="label">Best</span><span class="value" id="best">0</span></div>
+    </div>
+
+    <div class="field" id="field"></div>
+    <div class="bubble" id="bubble">Ready? The moles are already trash-talking you.</div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-card">
+      <div class="emoji" id="overlay-emoji">🔨</div>
+      <h2 id="overlay-title">Whack-a-Mole</h2>
+      <p id="overlay-text"></p>
+      <button class="btn" id="start" type="button">Start</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var field = document.getElementById("field");
+      var scoreEl = document.getElementById("score");
+      var timeEl = document.getElementById("time");
+      var bestEl = document.getElementById("best");
+      var bubble = document.getElementById("bubble");
+      var overlay = document.getElementById("overlay");
+      var overlayEmoji = document.getElementById("overlay-emoji");
+      var overlayTitle = document.getElementById("overlay-title");
+      var overlayText = document.getElementById("overlay-text");
+      var startBtn = document.getElementById("start");
+
+      var EMOJI = { mole: "🐹", gold: "👑", bomb: "💣" };
+      var HIT = ["Ow!", "Not the face!", "I was napping!", "Rude!", "Why me?!", "My sunglasses!"];
+      var GOLD = ["Ooh, shiny!", "Take my gold!", "I'm too rich for this!", "💎"];
+      var BOMB = ["BOOM!", "Wrong hole!", "That was my house!", "💥"];
+      var GAME_TIME = 30;
+
+      var holes = [];
+      var score = 0, timeLeft = GAME_TIME, running = false, activeCount = 0;
+      var spawnTimer = null, tickTimer = null;
+      var best = 0;
+
+      try { best = parseInt(localStorage.getItem("funhouse-mole-best") || "0", 10) || 0; } catch (e) {}
+      bestEl.textContent = best;
+
+      function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+      function say(text) { bubble.textContent = text; }
+
+      for (var i = 0; i < 9; i++) {
+        (function () {
+          var holeEl = document.createElement("div");
+          holeEl.className = "hole";
+          var moleEl = document.createElement("div");
+          moleEl.className = "mole";
+          moleEl.textContent = "🐹";
+          holeEl.appendChild(moleEl);
+          var hole = { el: holeEl, moleEl: moleEl, active: false, type: null, hideTimer: null };
+          holeEl.addEventListener("pointerdown", function (e) {
+            e.preventDefault();
+            if (!running || !hole.active) return;
+            hit(hole);
+          });
+          holes.push(hole);
+          field.appendChild(holeEl);
+        })();
+      }
+
+      function show(hole) {
+        var r = Math.random();
+        var type = "mole";
+        if (r < 0.07) type = "gold";
+        else if (r < 0.20) type = "bomb";
+        hole.type = type;
+        hole.active = true;
+        hole.moleEl.textContent = EMOJI[type];
+        hole.el.classList.add("up", type);
+        activeCount++;
+        hole.hideTimer = setTimeout(function () { hide(hole); }, 650 + Math.random() * 450);
+      }
+
+      function hide(hole) {
+        if (!hole.active) return;
+        clearTimeout(hole.hideTimer);
+        hole.active = false;
+        activeCount--;
+        hole.el.classList.remove("up", "mole", "gold", "bomb", "bonk");
+      }
+
+      function bonk(hole) {
+        clearTimeout(hole.hideTimer);
+        hole.active = false;
+        activeCount--;
+        hole.el.classList.remove("up");
+        hole.el.classList.add("bonk");
+        setTimeout(function () {
+          hole.el.classList.remove("bonk", "mole", "gold", "bomb");
+        }, 320);
+      }
+
+      function hit(hole) {
+        var type = hole.type;
+        bonk(hole);
+        if (type === "mole") { score += 10; say(rand(HIT)); }
+        else if (type === "gold") { score += 50; say(rand(GOLD)); }
+        else { score = Math.max(0, score - 20); say(rand(BOMB)); }
+        scoreEl.textContent = score;
+      }
+
+      function maxActive() {
+        return Math.min(2 + Math.floor((GAME_TIME - timeLeft) / 5), 4);
+      }
+
+      function scheduleSpawn() {
+        if (!running) return;
+        var interval = Math.max(360, 800 - (GAME_TIME - timeLeft) * 14);
+        spawnTimer = setTimeout(function () {
+          spawn();
+          scheduleSpawn();
+        }, interval + Math.random() * 180);
+      }
+
+      function spawn() {
+        if (!running) return;
+        var empty = holes.filter(function (h) { return !h.active; });
+        if (empty.length && activeCount < maxActive()) {
+          show(rand(empty));
+        }
+      }
+
+      function end() {
+        running = false;
+        clearTimeout(spawnTimer);
+        clearInterval(tickTimer);
+        holes.forEach(function (h) { hide(h); });
+        if (score > best) {
+          best = score;
+          try { localStorage.setItem("funhouse-mole-best", String(best)); } catch (e) {}
+          bestEl.textContent = best;
+        }
+
+        var verdict;
+        if (score <= 0) verdict = "The moles are laughing at you. Possibly pointing.";
+        else if (score < 80) verdict = "Not bad. The moles are mildly annoyed.";
+        else if (score < 200) verdict = "Solid. The moles have filed a formal complaint.";
+        else if (score < 350) verdict = "Brutal. The mole union is demanding hazard pay.";
+        else verdict = "MOLE ARMAGEDDON. The moles now fear your name.";
+
+        overlayEmoji.textContent = score >= 350 ? "🏆" : "🔨";
+        overlayTitle.textContent = "Time up! Score: " + score;
+        overlayText.textContent = verdict;
+        startBtn.textContent = "Play again";
+        overlay.hidden = false;
+      }
+
+      function start() {
+        score = 0;
+        timeLeft = GAME_TIME;
+        running = true;
+        scoreEl.textContent = "0";
+        timeEl.textContent = timeLeft;
+        overlay.hidden = true;
+        say("Go go go! Whack 'em!");
+        scheduleSpawn();
+        tickTimer = setInterval(function () {
+          timeLeft--;
+          timeEl.textContent = timeLeft;
+          if (timeLeft <= 0) end();
+        }, 1000);
+      }
+
+      startBtn.addEventListener("click", start);
+
+      overlayEmoji.textContent = "🔨";
+      overlayTitle.textContent = "Whack-a-Mole";
+      overlayText.textContent = "30 seconds. Whack moles (+10), crowns (+50), and NOT the bombs (−20).";
+      startBtn.textContent = "Start";
+      overlay.hidden = false;
+    })();
+  </script>
+</body>
+</html>
